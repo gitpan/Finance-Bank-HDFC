@@ -1,0 +1,9 @@
+Revision history for Perl module Finance::Bank::HDFC
+
+
+* Fri Nov 18 00:28:44 IST 2005		version 0.01
+  - Provides the following methods:
+      login
+      get_balance
+      logout
+
