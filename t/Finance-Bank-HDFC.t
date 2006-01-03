@@ -1,15 +1,77 @@
-# Before `make install' is performed this script should be runnable with
-# `make test'. After `make install' it should work as `perl Finance-Bank-HDFC.t'
+#!/usr/bin/perl
+use strict; use warnings;
 
-#########################
+use lib 'lib';
 
-# change 'tests => 1' to 'tests => last_test_to_print';
+use Test::More tests => 5;
+use Test::MockModule;
 
-use Test::More tests => 1;
-BEGIN { use_ok('Finance::Bank::HDFC') };
+my $module = 'Finance::Bank::HDFC';
 
-#########################
+use_ok($module) or die;
 
-# Insert your test code below, the Test::More module is use()ed here so read
-# its man page ( perldoc Test::More ) for help writing this test script.
+my $bank = Finance::Bank::HDFC->new;
+isa_ok($bank, $module);
 
+# Lets get data for the tests
+my $login_data = <DATA>;
+my $get_balance_data = <DATA>;
+
+# Test the login method
+# Lets mock the LWP::UserAgent's request method
+{
+    my $lwp = Test::MockModule->new( 'LWP::UserAgent' );
+    $lwp->mock( request => sub { 
+        # Lets return a hand crafted HTTP::Response object
+        my $response = HTTP::Response->new;
+        $response->code(200);
+        $response->content($login_data);
+        return $response;
+    });
+
+    # Test the login method
+    my $ret = $bank->login(
+                cust_id     => 'XXX',
+                password    => 'XXX',
+    );
+    is($ret, 1, "login");
+}
+
+# Test the get_balance method
+
+# Lets mock the LWP::UserAgent's request method
+# XXX: Need to change this code, as we need to mock LWP::UserAgent for every
+# call. Maybe we need to use Test::MockObject ?
+
+{
+    my $lwp = Test::MockModule->new( 'LWP::UserAgent' );
+    $lwp->mock( request => sub { 
+        # Lets return a hand crafted HTTP::Response object
+        my $response = HTTP::Response->new;
+        $response->code(200);
+        $response->content($get_balance_data);
+        return $response;
+    });
+
+    # Test the get_balance method
+    my $amt = $bank->get_balance();
+    is($amt, "999999.99", "get_balance");
+}
+
+# Test the logout method
+{
+    my $lwp = Test::MockModule->new( 'LWP::UserAgent' );
+    $lwp->mock( request => sub { 
+        # Lets return a hand crafted HTTP::Response object
+        my $response = HTTP::Response->new;
+        $response->code(200);
+        return $response;
+    });
+
+    # Test the logout method
+    my $ret = $bank->logout();
+    is($ret, 1, 'logout');
+}
+__DATA__
+<input value="RS" name="fldAppId" type="hidden"><input value="MNU" name="fldTxnId" type="hidden"><input value="09" name="fldScrnSeqNbr" type="hidden"><input value="405819949ICZJFCXJT" name="fldSessionId" type="hidden"><input value="" name="customername" type="hidden"></form>
+balance[count] = "999999.99";

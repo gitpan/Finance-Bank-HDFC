@@ -1,9 +1,14 @@
 Revision history for Perl module Finance::Bank::HDFC
 
 
+* Tue Jan  3 18:43:27 IST 2006      version 0.03
+    - Added tests for login, get_balance and logout methods
+    - Using Test::MockModule to mock LWP::UserAgent's request method
+    - Minor code cleanup
+
 * Fri Nov 18 00:28:44 IST 2005		version 0.01
-  - Provides the following methods:
-      login
-      get_balance
-      logout
+    - Provides the following methods:
+        login
+        get_balance
+        logout
 

@@ -1,127 +1,141 @@
 package Finance::Bank::HDFC;
+use strict; use warnings;
 
-use 5.008006;
-use strict;
-use warnings;
 
-require Exporter;
+###########################################################################
+# Copyright (C) 2005 by Rohan Almeida
+#
+# This library is free software; you can redistribute it and/or modify
+# it under the same terms as Perl itself.
+###########################################################################
 
-our @ISA = qw(Exporter);
-
-our %EXPORT_TAGS = ();
-our @EXPORT_OK = ();
-our @EXPORT = ();
-
-our $VERSION = '0.01';
+our $VERSION = "0.0.3";
 
 use LWP::UserAgent;
-#use LWP::Debug qw(+ -conns);
 
-my $url = 'https://netbanking.hdfcbank.com/netbanking/entry';
+# Netbanking URL
+my $HDFC_URL = 'https://netbanking.hdfcbank.com/netbanking/entry';
+
+# Transaction Codes
+my %TRANSACTION_CODES = (
+                login   => 'LGN',
+                balance => 'SBI',
+                logout  => 'LGF',
+);
+
+# HTTP timeout
+my $HTTP_TIMEOUT = 10;
 
 sub new
 {
-	my $class = shift;
+    my $class = shift;
 
-	my $ua = LWP::UserAgent->new;
-	my $request = HTTP::Request->new(POST => $url);
-	$request->content_type('application/x-www-form-urlencoded');
+    my $ua = LWP::UserAgent->new;
+    $ua->timeout($HTTP_TIMEOUT);
 
-	my $self = {
-		'ua'		=> $ua,
-		'request'	=> $request,
-	};
+    my $request = HTTP::Request->new(POST => $HDFC_URL);
+    $request->content_type('application/x-www-form-urlencoded');
 
-	bless $self, $class;
-	return $self;
+    my $self = {
+        'ua'            => $ua,
+        'request'       => $request,
+    };
+
+    bless $self, $class;
+    return $self;
 }
+
 
 sub login
 {
-	my $self = shift;
-	my %args = @_;
+    my $self = shift;
+    my %args = @_;
 
-	if (not exists $args{'cust_id'} || not exists $args{'password'}) {
-		return -1;
-	}
+    if (not exists $args{'cust_id'} || not exists $args{'password'}) {
+        return -1;
+    }
 
-	my $transaction_id = 'LGN';
+    my $transaction_id = $TRANSACTION_CODES{'login'};
 
-	$self->{'request'}->content(
-		"fldLoginUserId=" . $args{'cust_id'} . '&' . 
-		"fldPassword=" . $args{'password'} . '&' . 
-		"fldAppId=RS" . '&' . 
-		"fldTxnId=$transaction_id" . '&' . 
-		"fldScrnSeqNbr=01" . '&' . 
-		"fldLangId=eng&fldDeviceId=01&fldWebserverId=YG&fldAppServerId=ZZ"
-	);
+    $self->{'request'}->content(
+            "fldLoginUserId=" . $args{'cust_id'} . '&' . 
+            "fldPassword=" . $args{'password'} . '&' . 
+            "fldAppId=RS" . '&' . 
+            "fldTxnId=$transaction_id" . '&' . 
+            "fldScrnSeqNbr=01" . '&' . 
+            "fldLangId=eng&fldDeviceId=01&fldWebserverId=YG&fldAppServerId=ZZ"
+    );
 
-	my $response = $self->{'ua'}->request($self->{'request'});
-	if ($response->code != 200) {
-		return -1;
-	}
+    my $response = $self->{'ua'}->request($self->{'request'});
 
-	# Get session Id
-	if ($response->content =~ /<input value="(\w+)" name="fldSessionId" type="hidden">/) {
-		$self->{'session_id'} = $1;
-	}
-	else {
-		return -1;
-	}
-	
-	return 1;
+    if ($response->code != 200) {
+        return -1;
+    }
+
+    # Get session Id
+    if ($response->content 
+            =~ /<input value="(\w+)" name="fldSessionId" type="hidden">/) 
+    {
+        $self->{'session_id'} = $1;
+    }
+    else {
+        return -1;
+    }
+    
+    return 1;
 }
 
 sub get_balance
 {
-	my $self = shift;
+    my $self = shift;
 
-	# Get the account balance
-	my $transaction_id = 'SBI';
+    # Get the account balance
+    my $transaction_id = $TRANSACTION_CODES{'balance'};
 
-	$self->{'request'}->content(
-		"fldSessionId=" . $self->{'session_id'} . '&' . 
-		"fldAppId=RS" . '&' . 
-		"fldTxnId=$transaction_id" . '&' . 
-		"fldScrnSeqNbr=01" . '&' . 
-		"fldModule=CH"
-	);
-	
-	my $response = $self->{'ua'}->request($self->{'request'});
-	if ($response->code != 200) {
-		return -1;
-	}
-	
-	if ($response->content =~ /balance\[count\] = "(.*)"/) {
-		return $1;
-	}
-	else {
-		return -1;
-	}
-
+    $self->{'request'}->content(
+            "fldSessionId=" . $self->{'session_id'} . '&' . 
+            "fldAppId=RS" . '&' . 
+            "fldTxnId=$transaction_id" . '&' . 
+            "fldScrnSeqNbr=01" . '&' . 
+            "fldModule=CH"
+    );
+    
+    my $response = $self->{'ua'}->request($self->{'request'});
+    if ($response->code != 200) {
+        return -1;
+    }
+    
+    if ($response->content =~ /balance\[count\] = "(.*)"/) {
+        return $1;
+    }
+    else {
+        return -1;
+    }
 }
+
 
 sub logout
 {
-	my $self = shift;
+    my $self = shift;
 
-	my $transaction_id = 'LGF';
+    my $transaction_id = $TRANSACTION_CODES{'logout'};
 
-	$self->{'request'}->content(
-		"fldSessionId=" . $self->{'session_id'} . '&' . 
-		"fldAppId=RS" . '&' . 
-		"fldTxnId=$transaction_id" . '&' . 
-		"fldScrnSeqNbr=01" . '&' . 
-		"fldModule=CH"
-	);
+    $self->{'request'}->content(
+            "fldSessionId=" . $self->{'session_id'} . '&' . 
+            "fldAppId=RS" . '&' . 
+            "fldTxnId=$transaction_id" . '&' . 
+            "fldScrnSeqNbr=01" . '&' . 
+            "fldModule=CH"
+    );
 
-	# Logout
-	my $response = $self->{'ua'}->request($self->{'request'});
-	if ($response->code != 200) {
-		return -1;
-	}
-	
-	return 1;
+    # Logout
+    my $response = $self->{'ua'}->request($self->{'request'});
+
+    if ($response->code != 200) {
+        return -1;
+    }
+    
+    return 1;
 }
 
 1;
