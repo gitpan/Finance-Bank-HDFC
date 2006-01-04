@@ -9,7 +9,7 @@ use strict; use warnings;
 # it under the same terms as Perl itself.
 ###########################################################################
 
-our $VERSION = "0.0.3";
+our $VERSION = '0.03';
 
 use LWP::UserAgent;
 
