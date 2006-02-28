@@ -1,7 +1,9 @@
 Changes
+TODO
 Makefile.PL
 MANIFEST
 README
 t/Finance-Bank-HDFC.t
 lib/Finance/Bank/HDFC.pm
+scripts/get_balance.pl
 META.yml                                 Module meta-data (added by MakeMaker)

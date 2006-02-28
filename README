@@ -1,5 +1,6 @@
-Finance-Bank-HDFC version 0.01
-==============================
+
+Finance-Bank-HDFC
+=================
 
 This module provides an interface to the HDFC netbanking service at 
 https://netbanking.hdfcbank.com/netbanking/
@@ -16,11 +17,11 @@ DEPENDENCIES
 
 This module requires these other modules and libraries:
 
-  LWP::UserAgent, Crypt::SSLeay
+  LWP::UserAgent, Crypt::SSLeay, version, Readonly
 
 COPYRIGHT AND LICENCE
 
-Copyright (C) 2005 by Rohan Almeida
+Copyright (C) 2005 by Rohan Almeida <rohan.almeida@gmail.com>
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.6 or,

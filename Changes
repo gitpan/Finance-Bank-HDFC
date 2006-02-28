@@ -1,7 +1,16 @@
 Revision history for Perl module Finance::Bank::HDFC
 
 
-* Tue Jan  3 18:43:27 IST 2006      version 0.03
+* Tue Feb 28 13:52:31 IST 2006      version 0.12
+    - Module Readonly used for constants
+    - Added method set_timeout
+    - All methods die on errors
+    - Code cleanup
+    - sample script in scripts/get_balance.pl
+    - Added TODO file in distribution
+
+* Tue Jan  3 18:43:27 IST 2006      version 0.1.3
+    - The CPAN version module required
     - Added tests for login, get_balance and logout methods
     - Using Test::MockModule to mock LWP::UserAgent's request method
     - Minor code cleanup

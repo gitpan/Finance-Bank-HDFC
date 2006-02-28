@@ -3,7 +3,7 @@ use strict; use warnings;
 
 use lib 'lib';
 
-use Test::More tests => 5;
+use Test::More tests => 6;
 use Test::MockModule;
 
 my $module = 'Finance::Bank::HDFC';
@@ -12,6 +12,10 @@ use_ok($module) or die;
 
 my $bank = Finance::Bank::HDFC->new;
 isa_ok($bank, $module);
+
+# set_timeout
+my $timeout = $bank->set_timeout(10);
+ok($timeout == 10, 'set_timeout');
 
 # Lets get data for the tests
 my $login_data = <DATA>;
