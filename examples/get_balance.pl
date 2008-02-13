@@ -2,11 +2,11 @@
 use strict; use warnings;
 $|++;
 
-#use lib 'lib';
 use Finance::Bank::HDFC;
 
-my $cust_id = 'XXXXXXX';
-my $password = 'XXXX';
+# Fill in your HDFC customer ID and password
+my $cust_id = 'xxxxxxxx';
+my $password = 'xxxxxxxx';
 
 my $bank = Finance::Bank::HDFC->new;
 $bank->login(

@@ -1,14 +1,20 @@
-# http://module-build.sourceforge.net/META-spec.html
-#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
-name:         Finance-Bank-HDFC
-version:      v0.12.0
-version_from: lib/Finance/Bank/HDFC.pm
-installdirs:  site
-requires:
+--- #YAML:1.0
+name:                Finance-Bank-HDFC
+version:             v0.13.0
+abstract:            Interface to the HDFC netbanking service
+license:             ~
+generated_by:        ExtUtils::MakeMaker version 6.32
+distribution_type:   module
+requires:     
     Crypt::SSLeay:                 0
+    File::Slurp:                   0
     LWP::UserAgent:                0
     Readonly:                      0
+    Template::Extract:             0
+    Test::MockModule:              0
     version:                       0
-
-distribution_type: module
-generated_by: ExtUtils::MakeMaker version 6.17
+meta-spec:
+    url:     http://module-build.sourceforge.net/META-spec-v1.2.html
+    version: 1.2
+author:
+    - Rohan Almeida <rohan@almeida.in>

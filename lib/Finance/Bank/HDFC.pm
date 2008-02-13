@@ -1,31 +1,51 @@
 package Finance::Bank::HDFC;
-use strict;
-use warnings;
+use strict; use warnings;
 
 ###########################################################################
-# Copyright (C) 2005 by Rohan Almeida <rohan.almeida@gmail.com>
+# Copyright (C) 2008 by Rohan Almeida <rohan@almeida.in>
 #
 # This library is free software; you can redistribute it and/or modify
 # it under the same terms as Perl itself.
 ###########################################################################
 
-use version; our $VERSION = qv('0.12');
+use version; our $VERSION = qv('0.13');
 
 use Readonly;
 use LWP::UserAgent;
+use Template::Extract;
+use Data::Dumper;
+
+#use LWP::Debug qw(+ -conns);
 
 # Netbanking URL
 Readonly my $HDFC_URL => 'https://netbanking.hdfcbank.com/netbanking/entry';
 
 # Transaction Codes
 Readonly my %TRANSACTION_CODES => (
-    login   => 'LGN',
-    balance => 'SBI',
-    logout  => 'LGF',
+    login           => 'LGN',
+    balance         => 'SBI',
+    logout          => 'LGF',
+    mini_statement  => 'SIN',
 );
 
 # HTTP timeout in seconds (default value)
-Readonly my $HTTP_TIMEOUT => 20;
+Readonly my $HTTP_TIMEOUT => 30;
+
+# template for extracting mini statements
+my $template_mini_statement = <<'EOF';
+[% FOREACH record %]
+
+        dattxn[l_count] = '[% date_transaction %]';
+        txndesc[l_count] = "[% description %]";
+        refchqnbr[l_count] = '[% ref_chq_num %]';
+        datvalue[l_count] = '[% date_value %]';
+        amttxn[l_count] = '[% amount %]';
+        balaftertxn[l_count] = '[% balance %]';
+        coddrcr[l_count] = '[% type %]';
+        l_count ++;
+[% END %]
+EOF
+
 
 ### CLASS METHOD ####################################################
 # Usage      : $obj = Finance::Bank::HDFC->new()
@@ -168,6 +188,57 @@ sub get_balance {
     }
 }
 
+### INSTANCE METHOD ##################################################
+# Usage      : @statements = $obj->get_mini_statement()
+# Purpose    : Get mini statement of accounts
+# Returns    :
+#            : 1) @statements => array of statements
+# Parameters : None
+# Throws     :
+#            : * "Not logged in\n"
+#            : * "HTTP error while getting account balance\n"
+#            : * "Got an invalid HTTP response code: $code\n"
+#            : * "Parse error while getting mini statement\n"
+# Comments   :
+#            : * Does not support multiple accounts
+# See Also   : n/a
+#######################################################################
+sub get_mini_statement {
+    my ($self) = @_;
+
+    # Check that user has logged in
+    if ( $self->{'session_id'} eq q{} ) {
+        die "Not logged in\n";
+    }
+
+    # Get the account balance
+    my $transaction_id = $TRANSACTION_CODES{'mini_statement'};
+
+    $self->{'request'}->content( "fldSessionId="
+            . $self->{'session_id'} . '&'
+            . "fldAppId=RS" . '&'
+            . "fldTxnId=$transaction_id" . '&'
+            . "fldScrnSeqNbr=01" . '&'
+            . "fldModule=CH" );
+
+    my $response = $self->{'ua'}->request( $self->{'request'} );
+
+    if ( $response->is_error ) {
+        die "HTTP error while getting mini statement\n";
+    }
+
+    if ( $response->code != 200 ) {
+        die "Got invalid HTTP response code: " . $response->code . "\n";
+    }
+
+    warn $response->content;
+    my $template = Template::Extract->new;
+    my $ref = $template->extract($template_mini_statement, $response->content);
+    warn Dumper $ref;
+
+    #return @{$ref->{record}};
+}
+
 ### INSTANCE METHOD ###################################################
 # Usage      : $obj->logout()
 # Purpose    : Logout from the netbanking system
@@ -238,7 +309,7 @@ Finance::Bank::HDFC - Interface to the HDFC netbanking service
 
 =head1 VERSION
 
-This documentation refers to version 0.12
+This documentation refers to version 0.13
 
 =head1 SYNOPSIS
 
@@ -246,8 +317,8 @@ This documentation refers to version 0.12
 
   my $bank = Finance::Bank::HDFC->new;
   $bank->login({
-    cust_id   => xxx,
-    password  => xxx,
+    cust_id   => 'xxx',
+    password  => 'xxx',
   });
   print $bank->get_balance . "\n";
   $bank->logout;
@@ -316,13 +387,14 @@ This software is useful to me, but is provided under NO GUARANTEE, explicit or i
 
 =head1 AUTHOR
 
-Rohan Almeida E<lt>rohan.almeida@gmail.comE<gt>
+Rohan Almeida <rohan@almeida.in>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2005 by Rohan Almeida E<lt>rohan.almeida@gmail.comE<gt>
+Copyright (C) 2008 by Rohan Almeida <rohan@almeida.in>
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
 
 =cut
+

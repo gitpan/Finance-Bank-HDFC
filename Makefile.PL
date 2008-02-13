@@ -10,8 +10,11 @@ WriteMakefile(
         Crypt::SSLeay => 0, 
         version => 0,
         Readonly => 0,
+        Test::MockModule => 0,
+        Template::Extract => 0,
+        File::Slurp => 0,
     }, # e.g., Module::Name => 1.1
     ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM  => 'lib/Finance/Bank/HDFC.pm', # retrieve abstract from module
-       AUTHOR         => 'Rohan Almeida <rohan.almeida@gmail.com>') : ()),
+       AUTHOR         => 'Rohan Almeida <rohan@almeida.in>') : ()),
 );

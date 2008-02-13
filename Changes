@@ -1,5 +1,7 @@
 Revision history for Perl module Finance::Bank::HDFC
 
+* Wed Feb 13 16:19:49 IST 2008      version 0.13
+    - Fixed dependenceis in Makefile.PL
 
 * Tue Feb 28 13:52:31 IST 2006      version 0.12
     - Module Readonly used for constants

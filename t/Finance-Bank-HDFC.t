@@ -5,6 +5,7 @@ use lib 'lib';
 
 use Test::More tests => 6;
 use Test::MockModule;
+use File::Slurp;
 
 my $module = 'Finance::Bank::HDFC';
 
@@ -61,6 +62,31 @@ my $get_balance_data = <DATA>;
     my $amt = $bank->get_balance();
     is($amt, "999999.99", "get_balance");
 }
+
+# test for get_mini_statement()
+=pod
+{
+    my $html = read_file('t/samples/mini_statement.html');
+    my $lwp = Test::MockModule->new( 'LWP::UserAgent' );
+    $lwp->mock( request => sub { 
+        # Lets return a hand crafted HTTP::Response object
+        my $response = HTTP::Response->new;
+        $response->code(200);
+        $response->content($html);
+        return $response;
+    });
+
+    # Test the get_mini_statement method
+    my @statements = $bank->get_mini_statement();
+    ok (scalar @statements == 2, 'get_mini_statement');
+    ok ($statements[0]->{amount} eq '1000.00', 'get_mini_statement');
+    ok ($statements[0]->{balance} eq '5000.00', 'get_mini_statement');
+    ok ($statements[1]->{amount} eq '1000.00', 'get_mini_statement');
+    ok ($statements[1]->{balance} eq '6000.00', 'get_mini_statement');
+    ok ($statements[1]->{type} eq 'C', 'get_mini_statement');
+
+}
+=cut
 
 # Test the logout method
 {
