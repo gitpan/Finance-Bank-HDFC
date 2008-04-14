@@ -1,17 +1,17 @@
 --- #YAML:1.0
 name:                Finance-Bank-HDFC
-version:             v0.13.0
+version:             v0.14.0
 abstract:            Interface to the HDFC netbanking service
 license:             ~
 generated_by:        ExtUtils::MakeMaker version 6.32
 distribution_type:   module
 requires:     
     Crypt::SSLeay:                 0
-    File::Slurp:                   0
     LWP::UserAgent:                0
     Readonly:                      0
     Template::Extract:             0
     Test::MockModule:              0
+    URI::Escape:                   0
     version:                       0
 meta-spec:
     url:     http://module-build.sourceforge.net/META-spec-v1.2.html

@@ -8,11 +8,12 @@ use strict; use warnings;
 # it under the same terms as Perl itself.
 ###########################################################################
 
-use version; our $VERSION = qv('0.13');
+use version; our $VERSION = qv('0.14');
 
 use Readonly;
 use LWP::UserAgent;
 use Template::Extract;
+use URI::Escape;
 use Data::Dumper;
 
 #use LWP::Debug qw(+ -conns);
@@ -32,17 +33,15 @@ Readonly my %TRANSACTION_CODES => (
 Readonly my $HTTP_TIMEOUT => 30;
 
 # template for extracting mini statements
-my $template_mini_statement = <<'EOF';
+Readonly my $TEMPLATE_MINI_STATEMENT => <<'EOF';
 [% FOREACH record %]
-
-        dattxn[l_count] = '[% date_transaction %]';
-        txndesc[l_count] = "[% description %]";
-        refchqnbr[l_count] = '[% ref_chq_num %]';
-        datvalue[l_count] = '[% date_value %]';
-        amttxn[l_count] = '[% amount %]';
-        balaftertxn[l_count] = '[% balance %]';
-        coddrcr[l_count] = '[% type %]';
-        l_count ++;
+    [% ... %]dattxn[l_count] = '[% date_transaction %]';
+    [% ... %]txndesc[l_count] = "[% description %]";
+    [% ... %]refchqnbr[l_count] = '[% ref_chq_num %]';
+    [% ... %]datvalue[l_count] = '[% date_value %]';
+    [% ... %]amttxn[l_count] = '[% amount %]';
+    [% ... %]balaftertxn[l_count] = '[% balance %]';
+    [% ... %]coddrcr[l_count] = '[% type %]';
 [% END %]
 EOF
 
@@ -69,6 +68,7 @@ sub new {
         'ua'         => $ua,
         'request'    => $request,
         'session_id' => q{},
+        'acct_no'   => q{},
     };
 
     bless $self, $class;
@@ -180,19 +180,30 @@ sub get_balance {
         die "Got invalid HTTP response code: " . $response->code . "\n";
     }
 
+    if ( $response->content =~ /accounts\[count\] = "\s*(\d+)\s*"/ ) {
+        $self->{acct_no} = $1;
+        chomp $self->{acct_no};
+        #warn "Account number: --" . $self->{acct_no} . "--\n";
+    }
+    else {
+        die "Parse error while getting account number\n";
+    }
+
     if ( $response->content =~ /balance\[count\] = "(.*)"/ ) {
         return $1;
     }
     else {
         die "Parse error while getting account balance\n";
     }
+
+
 }
 
 ### INSTANCE METHOD ##################################################
 # Usage      : @statements = $obj->get_mini_statement()
-# Purpose    : Get mini statement of accounts
+# Purpose    : Get account mini statement 
 # Returns    :
-#            : 1) @statements => array of statements
+#            : 1) @statements => array of hashrefs
 # Parameters : None
 # Throws     :
 #            : * "Not logged in\n"
@@ -211,6 +222,11 @@ sub get_mini_statement {
         die "Not logged in\n";
     }
 
+    # and that we have her account number
+    if ($self->{acct_no} eq q{}) {
+        $self->get_balance();
+    }
+
     # Get the account balance
     my $transaction_id = $TRANSACTION_CODES{'mini_statement'};
 
@@ -218,7 +234,11 @@ sub get_mini_statement {
             . $self->{'session_id'} . '&'
             . "fldAppId=RS" . '&'
             . "fldTxnId=$transaction_id" . '&'
-            . "fldScrnSeqNbr=01" . '&'
+            . "fldNbrStmt=20" . '&'
+            . "fldTxnType=A" . '&'
+            . "radTxnType=C" . '&'
+            . "fldScrnSeqNbr=02" . '&'
+            . "fldAcctNo=" . $self->{acct_no} . '&'
             . "fldModule=CH" );
 
     my $response = $self->{'ua'}->request( $self->{'request'} );
@@ -231,12 +251,13 @@ sub get_mini_statement {
         die "Got invalid HTTP response code: " . $response->code . "\n";
     }
 
-    warn $response->content;
+    #die $template_mini_statement;
+    #die $response->content;
     my $template = Template::Extract->new;
-    my $ref = $template->extract($template_mini_statement, $response->content);
-    warn Dumper $ref;
+    my $ref = $template->extract($TEMPLATE_MINI_STATEMENT, $response->content);
+    #warn Dumper $ref;
 
-    #return @{$ref->{record}};
+    return @{$ref->{record}};
 }
 
 ### INSTANCE METHOD ###################################################
@@ -309,18 +330,27 @@ Finance::Bank::HDFC - Interface to the HDFC netbanking service
 
 =head1 VERSION
 
-This documentation refers to version 0.13
+This documentation refers to version 0.14
 
 =head1 SYNOPSIS
 
-  use Finance::Bank::HDFC;
+    use Finance::Bank::HDFC;
 
-  my $bank = Finance::Bank::HDFC->new;
-  $bank->login({
-    cust_id   => 'xxx',
-    password  => 'xxx',
-  });
-  print $bank->get_balance . "\n";
+    my $bank = Finance::Bank::HDFC->new;
+    $bank->login({
+        cust_id   => 'xxx',
+        password  => 'xxx',
+    });
+    print $bank->get_balance . "\n";
+
+    # mini statement
+    my @statements = $bank->get_mini_statement();
+    for (@statements) {
+        print "Date: " . $_->{date_transaction} . "\n";
+        print "Amount: " . $_->{amount} . "\n";
+        print "Balance: " . $_->{balance} . "\n";
+    }
+
   $bank->logout;
  
 =head1 DESCRIPTION
@@ -330,23 +360,11 @@ at https://netbanking.hdfcbank.com/netbanking/
 
 =head1 METHODS
 
-=head2 new
+=head2 new()
 
 Constructor for this class. Currently requires no arguments.
 
-=head2 set_timeout
-
-Sets the HTTP timeout. Parameters:
-
-=over 4
-
-=item * timeout => HTTP timeout in seconds
-
-=back
-
-Returns the timeout just set.
-
-=head2 login
+=head2 login()
 
 Login to the netbanking service. Requires hashref of named parameters.
 
@@ -360,17 +378,53 @@ Login to the netbanking service. Requires hashref of named parameters.
 
 Dies on error.
 
-=head2 get_balance
+=head2 get_balance()
 
 Returns account balance. Dies on error.
 
-=head2 logout
+=head2 get_mini_statement()
+
+Returns account mini statement.
+
+It returns an array of hashrefs. Each hashref has the following keys:
+
+=over 4
+
+=item * date_transaction
+
+=item * description
+
+=item * ref_chq_num
+
+=item * date_value
+
+=item * amount
+
+=item * balance
+
+=item * type
+
+=back
+
+=head2 logout()
 
 Logout from the netbanking service. Remember to always call this method at 
 the end of your program or you may face difficulties logging in the 
 next time.
 
 Dies on error.
+
+=head2 set_timeout()
+
+Sets the HTTP timeout. Parameters:
+
+=over 4
+
+=item * timeout => HTTP timeout in seconds
+
+=back
+
+Returns the timeout just set.
 
 =head1 REQUIRES
 
@@ -391,7 +445,7 @@ Rohan Almeida <rohan@almeida.in>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2008 by Rohan Almeida <rohan@almeida.in>
+Copyright (C) 2005-2008 by Rohan Almeida <rohan@almeida.in>
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

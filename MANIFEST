@@ -6,4 +6,5 @@ README
 t/Finance-Bank-HDFC.t
 lib/Finance/Bank/HDFC.pm
 examples/get_balance.pl
+examples/get_mini_statement.pl
 META.yml                                 Module meta-data (added by MakeMaker)
